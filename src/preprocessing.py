@@ -38,6 +38,17 @@ print("Dataset Merged Successfully")
 print(f"Total Records : {len(df)}")
 print()
 
+# Remove Missing Values
+
+print("Removing Missing Values...")
+
+df = df.dropna(subset=["title", "text"])
+
+df.reset_index(drop=True, inplace=True)
+
+print("Remaining Records :", len(df))
+print()
+
 
 # Shuffle Dataset
 
@@ -93,6 +104,11 @@ print("Cleaning Text...")
 print()
 
 df["content"] = df["content"].apply(clean_text)
+
+# Cleaning can leave a record with no usable words.  Drop those rows so they
+# are not written as blank CSV fields (which pandas reads back as NaN).
+df = df.dropna(subset=["content"])
+df = df[df["content"].str.strip().ne("")].reset_index(drop=True)
 
 print("Cleaning Completed")
 print()

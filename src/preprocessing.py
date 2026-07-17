@@ -1,135 +1,40 @@
+from pathlib import Path
+
 import pandas as pd
-import re
-import string
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-import nltk
 
-try:
-    stopwords.words("english")
-except LookupError:
-    nltk.download("stopwords")
-
-try:
-    nltk.data.find("corpora/wordnet")
-except LookupError:
-    nltk.download("wordnet")
-
-# Load Dataset
-
-fake_df = pd.read_csv("dataset/Fake.csv")
-true_df = pd.read_csv("dataset/True.csv")
-
-print("Datasets Loaded Successfully")
-print()
+try:  # Supports both `python src/preprocessing.py` and package imports.
+    from .text_processing import clean_text
+except ImportError:
+    from text_processing import clean_text
 
 
-# Add Labels
-
-fake_df["label"] = 0
-true_df["label"] = 1
+ROOT_DIR = Path(__file__).resolve().parents[1]
+DATASET_DIR = ROOT_DIR / "dataset"
 
 
-# Merge Dataset
+def main() -> None:
+    fake_df = pd.read_csv(DATASET_DIR / "Fake.csv")
+    true_df = pd.read_csv(DATASET_DIR / "True.csv")
 
-df = pd.concat([fake_df, true_df], ignore_index=True)
+    fake_df["label"] = 0
+    true_df["label"] = 1
+    df = pd.concat([fake_df, true_df], ignore_index=True)
 
-print("Dataset Merged Successfully")
-print(f"Total Records : {len(df)}")
-print()
+    required_columns = {"title", "text", "label"}
+    missing_columns = required_columns.difference(df.columns)
+    if missing_columns:
+        raise ValueError(f"Dataset is missing columns: {sorted(missing_columns)}")
 
-# Remove Missing Values
+    df = df.dropna(subset=["title", "text"]).copy()
+    df["content"] = (df["title"].astype(str) + " " + df["text"].astype(str)).map(clean_text)
+    df = df[df["content"].str.strip().ne("")][["content", "label"]]
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 
-print("Removing Missing Values...")
-
-df = df.dropna(subset=["title", "text"])
-
-df.reset_index(drop=True, inplace=True)
-
-print("Remaining Records :", len(df))
-print()
-
-
-# Shuffle Dataset
-
-df = df.sample(frac=1, random_state=42).reset_index(drop=True)
-
-print("Dataset Shuffled")
-print()
+    output_path = DATASET_DIR / "processed_news.csv"
+    df.to_csv(output_path, index=False)
+    print(f"Saved {len(df):,} cleaned articles to {output_path}")
+    print(df["label"].value_counts().sort_index().rename(index={0: "Fake", 1: "Real"}))
 
 
-# Remove Unnecessary Columns
-
-df = df[["title", "text", "label"]]
-
-
-# Combine Title + Text
-
-df["content"] = df["title"] + " " + df["text"]
-
-df = df[["content", "label"]]
-
-
-# Text Cleaning
-
-lemmatizer = WordNetLemmatizer()
-
-stop_words = set(stopwords.words("english"))
-
-
-def clean_text(text):
-
-    text = text.lower()
-
-    text = re.sub(r"http\S+", "", text)
-
-    text = re.sub(r"<.*?>", "", text)
-
-    text = re.sub(r"\d+", "", text)
-
-    text = text.translate(str.maketrans("", "", string.punctuation))
-
-    words = text.split()
-
-    words = [
-        lemmatizer.lemmatize(word)
-        for word in words
-        if word not in stop_words
-    ]
-
-    return " ".join(words)
-
-
-print("Cleaning Text...")
-print()
-
-df["content"] = df["content"].apply(clean_text)
-
-# Cleaning can leave a record with no usable words.  Drop those rows so they
-# are not written as blank CSV fields (which pandas reads back as NaN).
-df = df.dropna(subset=["content"])
-df = df[df["content"].str.strip().ne("")].reset_index(drop=True)
-
-print("Cleaning Completed")
-print()
-
-
-# Save Processed Dataset
-
-df.to_csv("dataset/processed_news.csv", index=False)
-
-print("=" * 50)
-print("Preprocessing Completed Successfully")
-print("=" * 50)
-
-print()
-
-print(df.head())
-
-print()
-
-print("Dataset Shape :", df.shape)
-
-print()
-
-print(df["label"].value_counts())
+if __name__ == "__main__":
+    main()

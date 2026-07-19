@@ -13,6 +13,7 @@ st.markdown(
         .stApp {
             background: radial-gradient(circle at 15% 5%, #dbeafe 0, transparent 27%),
                         radial-gradient(circle at 85% 15%, #fef3c7 0, transparent 23%), #f8fafc;
+            color: #0f172a;
         }
         .hero {
             padding: 2.6rem 0 1.5rem;
@@ -26,11 +27,52 @@ st.markdown(
         }
         .fake { background: #fff1f2; border-color: #fda4af; color: #9f1239; }
         .real { background: #ecfdf5; border-color: #6ee7b7; color: #065f46; }
-        div[data-testid="stMetric"] {
-            background: rgba(255,255,255,.72); border: 1px solid #e2e8f0;
-            border-radius: 12px; padding: .8rem;
+        .summary-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 22px;
+            padding: 1.25rem 1.35rem;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+            color: #0f172a;
+            margin-top: 0.5rem;
+        }
+        .summary-card h3 {
+            margin: 0 0 0.75rem;
+            font-size: 1.05rem;
+            letter-spacing: 0.01em;
+        }
+        .summary-card .summary-value {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+        .summary-chip {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+            font-weight: 700;
+            padding: 0.85rem 1rem;
+            border-radius: 999px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .summary-card p {
+            margin: 1rem 0 0;
+            color: #475569;
+            font-size: 0.95rem;
+        }
+        .stTextArea textarea {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        .stSidebar .css-1d391kg {
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.9);
         }
         .stButton > button { border-radius: 10px; font-weight: 650; }
+        .css-1q8dd3e.edgvbvh3 {
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -83,10 +125,19 @@ with left:
         help="More context usually gives the model a more useful signal.",
     )
 with right:
-    st.markdown("#### Input summary")
-    st.metric("Words", len(news.split()))
-    st.metric("Characters", len(news))
-    st.caption(f"Classifier: {type(model).__name__}")
+    st.markdown(
+        """
+        <div class="summary-card">
+            <h3>Input summary</h3>
+            <div class="summary-value">
+                <div class="summary-chip">Words<br><strong>{words}</strong></div>
+                <div class="summary-chip">Characters<br><strong>{chars}</strong></div>
+            </div>
+            <p>Classifier: {classifier}</p>
+        </div>
+        """.format(words=len(news.split()), chars=len(news), classifier=type(model).__name__),
+        unsafe_allow_html=True,
+    )
 
 analyze = st.button("Analyze article", type="primary", use_container_width=True)
 
